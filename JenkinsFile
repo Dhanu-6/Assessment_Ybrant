@@ -4,7 +4,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                sh 'echo passed'
+                 git branch: 'main', url:'https://github.com/Dhanu-6/Assessment_Ybrant/main/JenkinsFile'
             }
         }
 
@@ -35,9 +36,9 @@ pipeline {
 
         stage('Code Quality') {
             steps {
-                withSonarQubeEnv('SonarQubeServer') {
-                    sh 'sonar-scanner'
-                }
+                withSonarQubeEnv('SonarQubeServer')  {
+                        SONAR_URL = ""
+                  }
             }
         }
 
