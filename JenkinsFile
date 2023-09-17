@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'npm install'
+                sh 'npm run build'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'npm test'
+            }
+        }
+
+        stage('Vulnerability Scan') {
+            steps {
+                script {
+                    def vulnerabilities = sh(script: 'trivy image -o json your-container-image', returnStatus: true)
+                    if (vulnerabilities == 0) {
+                        currentBuild.result = 'FAILURE'
+                        error("HIGH or CRITICAL vulnerabilities found.")
+                    }
+                }
+            }
+        }
+
+        stage('Code Quality') {
+            steps {
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh 'sonar-scanner'
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                // Authenticate with Kubernetes (e.g., using kubeconfig)
+                // Deploy the container image to Kubernetes
+                // Update Kubernetes services as necessary
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true
+        }
+    }
+}
