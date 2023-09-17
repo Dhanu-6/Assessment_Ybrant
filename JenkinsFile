@@ -27,20 +27,56 @@ pipeline {
             }
         }
 
-        stage('Code Quality') {
+        stage('Sonar Analysis') {
             steps {
-                withSonarQubeEnv('SonarQubeServer')  {
-                        SONAR_URL = ""
-                  }
+                   sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.url=URL_OF_SONARQUBE -Dsonar.login=TOKEN_OF_SONARQUBE -Dsonar.projectName=to-do-app \
+                   -Dsonar.sources=. \
+                   -Dsonar.projectKey=to-do-app '''
+               }
+            }
+
+       stage('Docker Build') {
+            steps {
+               script{
+                   withDockerRegistry(credentialsId: '9ea0c4b0-721f-4219-be62-48a976dbeec0') {
+                    sh "docker build -t  todoapp:latest -f docker/Dockerfile . "
+                    sh "docker tag todoapp:latest username/todoapp:latest "
+                 }
+               }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Docker Push') {
             steps {
-                // Authenticate with Kubernetes (e.g., using kubeconfig)
-                // Deploy the container image to Kubernetes
-                // Update Kubernetes services as necessary
+               script{
+                   withDockerRegistry(credentialsId: '9ea0c4b0-721f-4219-be62-48a976dbeec0') {
+                    sh "docker push  username/todoapp:latest "
+                 }
+               }
             }
         }
+        stage('trivy') {
+            steps {
+               sh " trivy username/todoapp:latest"
+            }
+        }
+		stage('Deploy to Docker') {
+            steps {
+               script{
+                   withDockerRegistry(credentialsId: '9ea0c4b0-721f-4219-be62-48a976dbeec0') {
+                    sh "docker run -d --name to-do-app -p 4000:4000 username/todoapp:latest "
+                 }
+               }
+            }
+        }
+
+       post {
+        success {
+            echo 'Build successful! '
+        }
+        failure {
+            echo 'Build failed. Please check the logs for details.'
+        }
+    }
     }
 }
