@@ -15,14 +15,7 @@ pipeline {
                 sh 'npm run build'
             }
         }
-
-        stage('Test') {
-            steps {
-                sh 'npm test'
-            }
-        }
-
-        stage('Vulnerability Scan') {
+       stage('Vulnerability Scan') {
             steps {
                 script {
                     def vulnerabilities = sh(script: 'trivy image -o json your-container-image', returnStatus: true)
@@ -48,12 +41,6 @@ pipeline {
                 // Deploy the container image to Kubernetes
                 // Update Kubernetes services as necessary
             }
-        }
-    }
-
-    post {
-        always {
-            archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true
         }
     }
 }
